@@ -1,42 +1,128 @@
 # dsh-web-search-ollama
 
-Ollama-backed web search provider for DeepSeek Harness. Registers a search provider on the
-`ctx.web` seam that calls Ollama REST web search API (`POST https://ollama.com/api/web_search`)
-and maps the results into dsh `web_search` tool shape (`{url, title, snippet}`).
+> 让 DeepSeek Harness 的 `web_search` 工具走 Ollama 的联网搜索 API，无需 DeepSeek 官方 Key，复用你已有的 `OLLAMA_API_KEY`。
 
-## Why
+![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)
 
-The shipped `@deepseek-ai/dsh-web-search-deepseek` provider speaks only the Anthropic
-`web_search_20250305` server tool over DeepSeek official Messages endpoint, and needs a
-**DeepSeek** API key. If your models run on Ollama (cloud or local), this plugin lets the
-same `web_search` tool use Ollama web search API instead, authenticated with the
-same `OLLAMA_API_KEY` your chat provider already uses.
+---
 
-## Install
+## 这是什么
 
+DeepSeek Harness 自带的 `@deepseek-ai/dsh-web-search-deepseek` 只支持 DeepSeek 官方 Anthropic 兼容端点（`web_search_20250305` 服务端工具），并要求一个 **DeepSeek 官方 API key**。如果你用 Ollama 跑模型（云端或本地），这个插件让 DSH 的 `web_search` 工具改走 [Ollama Web Search API](https://docs.ollama.com/capabilities/web-search)，认证使用与聊天模型相同的 `OLLAMA_API_KEY`。
+
+| | 内置 DeepSeek 插件 | 本插件 |
+| --- | --- | --- |
+| 依赖 Key | `DEEPSEEK_API_KEY`（DeepSeek 官方） | `OLLAMA_API_KEY`（Ollama） |
+| 协议 | Anthropic Messages + `web_search_20250305` | Ollama REST `/api/web_search` |
+| 适用场景 | 使用 DeepSeek 官方 API | 使用 Ollama（云/本地） |
+
+## 工作原理
+
+插件在 DSH 的 `ctx.web` seam 上注册一个 id 为 `ollama` 的搜索 provider：
+
+1. 收到 `web_search` 工具的 `query`
+2. 以 `Authorization: Bearer $OLLAMA_API_KEY` 调用 `POST https://ollama.com/api/web_search`
+3. 将 Ollama 返回的 `{title, url, content}` 映射为 DSH 标准的 `{url, title, snippet}` 结果
+
+搜索完成后，模型照常看到结构化的来源列表，引用方式与官方插件完全一致。
+
+## 安装
+
+### 1. 添加插件
+
+在 profile 目录执行：
+
+```bash
+cd $DSH_HOME/profiles/<你的profile>
+pnpm add dsh-web-search-ollama@github:sryimnoob123/dsh-web-search-ollama
+# 或本地开发时使用 link：
+# pnpm add link:/绝对路径/dsh-web-search-ollama
 ```
-dsh plugin --profile <active-profile> add link:<this-repo-path>
+
+然后将插件加入 profile 的 `package.json` bundles 列表：
+
+```json
+"dsh": {
+  "profile": {
+    "bundles": [
+      "...原有 bundle...",
+      "dsh-web-search-ollama"
+    ]
+  }
+}
 ```
 
-Then make the web seam select this provider (the base row defaults to `deepseek-official`):
+### 2. 安装依赖
+
+```bash
+cd $DSH_HOME/profiles/<你的profile>
+pnpm install
+```
+
+### 3. 让 web seam 使用本 provider
+
+在 profile 的 `cordis.patch.yml` 末尾追加（覆盖内置的 `deepseek-official` 选择）：
 
 ```yaml
-# profile cordis.patch.yml
+# 联网搜索：web seam 选择 ollama provider（覆盖 base 的 deepseek-official）
 - id: web
   config:
     searchProvider: ollama
+
+# 可选：禁用 DeepSeek 官方搜索插件，避免两个 provider 并存
+- id: web-search-deepseek
+  disabled: true
 ```
 
-## Config
+### 4. 配置 API Key
 
-Optional settings section `web-search-ollama:` in `$DSH_HOME/settings.yaml`:
+确保 `$DSH_HOME/.credentials.yaml` 中有：
+
+```yaml
+OLLAMA_API_KEY: <你的Ollama API Key>
+```
+
+### 5. 重启
+
+重启 DSH 后即可使用。
+
+## 验证
+
+```bash
+curl https://ollama.com/api/web_search \
+  -H "Authorization: Bearer $OLLAMA_API_KEY" \
+  -d '{"query":"what is ollama?"}'
+```
+
+在 DSH 中让模型执行一次联网搜索，应看到结构化来源列表而非报错。
+
+## 配置项
+
+可在 `$DSH_HOME/settings.yaml` 的 `web-search-ollama:` 段覆盖默认值：
 
 ```yaml
 web-search-ollama:
-  apiKeyEnv: OLLAMA_API_KEY
-  maxResults: 5
+  apiKeyEnv: OLLAMA_API_KEY   # 凭据引用（默认 OLLAMA_API_KEY）
+  maxResults: 5               # 每个查询返回的最大结果数（默认 5，Ollama 上限 10）
   # baseURL: https://ollama.com/api/web_search
 ```
 
-Defaults: `apiKeyEnv: OLLAMA_API_KEY`, `maxResults: 5`, endpoint
-`https://ollama.com/api/web_search` (env override `OLLAMA_WEB_SEARCH_BASE_URL`).
+| 配置项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `apiKeyEnv` | `OLLAMA_API_KEY` | 凭据引用名 |
+| `maxResults` | `5` | 每查询最大结果数（1-10） |
+| `baseURL` | `https://ollama.com/api/web_search` | 端点地址；也可用环境变量 `OLLAMA_WEB_SEARCH_BASE_URL` 覆盖 |
+
+## 常见问题
+
+### 搜索报 `no web_search_tool_result blocks`
+
+这是把内置 `web-search-deepseek` 的 `baseURL` 指向 Ollama 时的典型错误：Ollama 的 Anthropic 兼容端点不会返回 DSH 期望的 `web_search_tool_result` 块。请按上文安装步骤使用本插件，并清除 `settings.yaml` 中 `web-search-deepseek.baseURL` 的覆盖。
+
+### 报 `WEB_PROVIDER_UNAVAILABLE` / 搜索不可用
+
+确认 `.credentials.yaml` 中存在 `OLLAMA_API_KEY`，且 `web` 行的 `searchProvider` 已设为 `ollama`。
+
+## License
+
+MIT
