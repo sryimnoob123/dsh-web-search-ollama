@@ -1,0 +1,6 @@
+# dsh-web-search-ollama - bundle patch (web profile).
+# Registers the Ollama-backed web search provider on the ctx.web seam.
+
+- insert:
+    - id: web-search-ollama
+      name: 'dsh-web-search-ollama'
