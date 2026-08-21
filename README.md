@@ -26,6 +26,8 @@ DeepSeek Harness 自带的 `@deepseek-ai/dsh-web-search-deepseek` 只支持 Deep
 
 没有命中时返回空 sources 列表（不是报错），模型会看到"没搜到"而不是"搜索失败"。结果里缺 `url` 的条目会被丢弃，不会把坏形状传给 seam。
 
+插件**不向会话日志写入任何自定义事件**（早期版本用 `session.append("web/ollama-search-request", ...)` 记录请求，会让 harness 的会话解析器拒绝整个日志、导致历史加载失败——已移除）。
+
 ## 安装
 
 ### 1. 添加插件
