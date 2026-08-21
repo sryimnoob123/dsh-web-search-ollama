@@ -111,7 +111,11 @@ web-search-ollama:
 | --- | --- | --- |
 | `apiKeyEnv` | `OLLAMA_API_KEY` | 凭据引用名 |
 | `maxResults` | `5` | 每查询最大结果数，范围 1-10（自动 clamp） |
+| `timeoutMs` | `30000` | 单次搜索超时（毫秒），超时报 `WEB_PROVIDER_ERROR` |
 | `baseURL` | `https://ollama.com/api/web_search` | 端点地址；也可用环境变量 `OLLAMA_WEB_SEARCH_BASE_URL` 覆盖 |
+
+> `available()` 只在配置可解析且有凭据来源（字面 key / 环境变量 / credentials 服务）时为 true；
+> 非法 `apiKeyEnv` 会让 provider 标记为不可用而不是抛错。
 
 ## 常见问题
 
