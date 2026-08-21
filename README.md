@@ -52,29 +52,35 @@ pnpm add dsh-web-search-ollama@github:sryimnoob123/dsh-web-search-ollama
 }
 ```
 
-### 2. 安装依赖
+### 2. 安装依赖并配置 web seam（一键）
 
 ```bash
 cd $DSH_HOME/profiles/<你的profile>
 pnpm install
+# 一键写入 web seam 配置（自动追加 searchProvider: ollama + 禁用内置 DeepSeek 搜索）
+node node_modules/dsh-web-search-ollama/scripts/install-patch.mjs
+# 或指定 profile 目录：
+# node node_modules/dsh-web-search-ollama/scripts/install-patch.mjs C:/Users/你/.dsh-v4lite/profiles/web-desktop
+# 只检查不写入：
+# node node_modules/dsh-web-search-ollama/scripts/install-patch.mjs --check
 ```
 
-### 3. 让 web seam 使用本 provider
+脚本幂等、自动备份、UTF-8 无 BOM 写入（避免手动编辑 YAML 时被工具转坏编码——那会让 `searchProvider` 配置失效、搜索回落到内置 DeepSeek provider）。
 
-在 profile 的 `cordis.patch.yml` 末尾追加（覆盖内置的 `deepseek-official` 选择）：
+如果不想用脚本，手动在 profile 的 `cordis.patch.yml` 末尾追加（**务必用 UTF-8 无 BOM 保存**）：
 
 ```yaml
-# 联网搜索：web seam 选择 ollama provider（覆盖 base 的 deepseek-official）
+# web seam 选择 ollama provider（覆盖 base 的 deepseek-official）
 - id: web
   config:
     searchProvider: ollama
 
-# 可选：禁用 DeepSeek 官方搜索插件，避免两个 provider 并存
+# 禁用 DeepSeek 官方搜索，避免两个 provider 并存（WEB_PROVIDER_AMBIGUOUS）
 - id: web-search-deepseek
   disabled: true
 ```
 
-### 4. 配置 API Key
+### 3. 配置 API Key
 
 确保 `$DSH_HOME/.credentials.yaml` 中有：
 
@@ -82,7 +88,7 @@ pnpm install
 OLLAMA_API_KEY: <你的Ollama API Key>
 ```
 
-### 5. 重启
+### 4. 重启
 
 重启 DSH 后即可使用。
 
