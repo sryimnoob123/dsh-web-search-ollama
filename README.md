@@ -24,13 +24,11 @@ DeepSeek Harness 自带的 `@deepseek-ai/dsh-web-search-deepseek` 只支持 Deep
 2. 以 `Authorization: Bearer $OLLAMA_API_KEY` 调用 `POST https://ollama.com/api/web_search`
 3. 将 Ollama 返回的 `{title, url, content}` 映射为 DSH 标准的 `{url, title, snippet}` 结果
 
-搜索完成后，模型照常看到结构化的来源列表，引用方式与官方插件完全一致。
+没有命中时返回空 sources 列表（不是报错），模型会看到"没搜到"而不是"搜索失败"。结果里缺 `url` 的条目会被丢弃，不会把坏形状传给 seam。
 
 ## 安装
 
 ### 1. 添加插件
-
-在 profile 目录执行：
 
 ```bash
 cd $DSH_HOME/profiles/<你的profile>
@@ -103,14 +101,14 @@ curl https://ollama.com/api/web_search \
 ```yaml
 web-search-ollama:
   apiKeyEnv: OLLAMA_API_KEY   # 凭据引用（默认 OLLAMA_API_KEY）
-  maxResults: 5               # 每个查询返回的最大结果数（默认 5，Ollama 上限 10）
+  maxResults: 5               # 每查询最大结果数（默认 5，1-10，超界自动收敛）
   # baseURL: https://ollama.com/api/web_search
 ```
 
 | 配置项 | 默认值 | 说明 |
 | --- | --- | --- |
 | `apiKeyEnv` | `OLLAMA_API_KEY` | 凭据引用名 |
-| `maxResults` | `5` | 每查询最大结果数（1-10） |
+| `maxResults` | `5` | 每查询最大结果数，范围 1-10（自动 clamp） |
 | `baseURL` | `https://ollama.com/api/web_search` | 端点地址；也可用环境变量 `OLLAMA_WEB_SEARCH_BASE_URL` 覆盖 |
 
 ## 常见问题
