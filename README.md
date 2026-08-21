@@ -67,6 +67,8 @@ node node_modules/dsh-web-search-ollama/scripts/install-patch.mjs
 
 脚本幂等、自动备份、UTF-8 无 BOM 写入（避免手动编辑 YAML 时被工具转坏编码——那会让 `searchProvider` 配置失效、搜索回落到内置 DeepSeek provider）。
 
+脚本还会设置用户级环境变量 `DSH_WEB_SEARCH_PROVIDER=ollama`（Windows 用 `setx`，其他平台提示手动设置）。这是双保险：dsh-web 在 patch 配置缺失时读这个环境变量选 provider，所以即使 `cordis.patch.yml` 被外部工具写坏，搜索也**不会**静默回落到内置 DeepSeek provider。
+
 如果不想用脚本，手动在 profile 的 `cordis.patch.yml` 末尾追加（**务必用 UTF-8 无 BOM 保存**）：
 
 ```yaml
@@ -122,6 +124,22 @@ web-search-ollama:
 
 > `available()` 只在配置可解析且有凭据来源（字面 key / 环境变量 / credentials 服务）时为 true；
 > 非法 `apiKeyEnv` 会让 provider 标记为不可用而不是抛错。
+
+## 切换搜索源
+
+本插件只是**注册** ollama 搜索 provider，选不选由配置决定——不会强制任何用户。想换回 DeepSeek 官方搜索：
+
+```powershell
+# 1. 改环境变量（用户级）
+[Environment]::SetEnvironmentVariable("DSH_WEB_SEARCH_PROVIDER", "deepseek-official", "User")
+# 或删掉环境变量，让 patch 配置决定：
+# [Environment]::SetEnvironmentVariable("DSH_WEB_SEARCH_PROVIDER", $null, "User")
+
+# 2. 去掉 patch 里对 web-search-deepseek 的禁用（把 disabled: true 删掉）
+# 3. 重启 DSH
+```
+
+注意 patch 配置优先于环境变量：patch 里写了 `searchProvider: ollama` 时，环境变量改了也不生效，需要两处一起改。
 
 ## 常见问题
 
