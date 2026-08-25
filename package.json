@@ -13,7 +13,8 @@
     "lib",
     "cordis.patch.yml",
     "README.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "LICENSE"
   ],
   "dsh": {
     "bundle": {
@@ -25,5 +26,21 @@
     "@deepseek-ai/dsh-web": "*",
     "@deepseek-ai/dsh-launch-environment": "*"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sryimnoob123/dsh-web-search-ollama.git"
+  },
+  "engines": {
+    "dsh": ">=0.1.0-rc.8",
+    "node": ">=18.17.0"
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "plugin",
+    "web",
+    "search",
+    "ollama"
+  ]
 }
